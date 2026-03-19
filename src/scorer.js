@@ -42,7 +42,7 @@ function checkBannedWords(text, profile) {
   }
 
   const score = flags.length === 0 ? 100 : Math.max(0, 100 - flags.length * 15);
-  return { name: "Banned words", weight: 20, score, flags, fixes };
+  return { name: "Banned words", weight: 15, score, flags, fixes };
 }
 
 function checkFillerOpeners(text) {
@@ -165,7 +165,7 @@ function checkHedging(text) {
   }
 
   const score = flags.length === 0 ? 100 : Math.max(0, 100 - flags.length * 20);
-  return { name: "Hedge clusters", weight: 10, score, flags, fixes };
+  return { name: "Hedge clusters", weight: 5, score, flags, fixes };
 }
 
 function checkPassiveVoice(text, profile) {
@@ -210,7 +210,7 @@ function checkAITriple(rawText) {
   if (bulletLines.length >= 3) checkRun(bulletLines, flags, fixes);
 
   const score = flags.length === 0 ? 100 : Math.max(0, 100 - flags.length * 25);
-  return { name: "AI triple", weight: 10, score, flags, fixes };
+  return { name: "AI triple", weight: 5, score, flags, fixes };
 }
 
 function checkRun(bullets, flags, fixes) {
@@ -256,7 +256,7 @@ function checkBulletWalls(rawText, profile) {
   }
 
   const score = flags.length === 0 ? 100 : Math.max(0, 100 - flags.length * 20);
-  return { name: "Bullet walls", weight: 10, score, flags, fixes };
+  return { name: "Bullet walls", weight: 5, score, flags, fixes };
 }
 
 function checkVoiceConformance(text, rawText, profile) {
@@ -272,7 +272,7 @@ function checkVoiceConformance(text, rawText, profile) {
   const docEmDashes = (text.match(/—/g) || []).length;
   const docEmDashRate = sentences.length > 0 ? Math.round((docEmDashes / sentences.length) * 100) : 0;
   const emDashDiff = Math.abs(docEmDashRate - profileEmDashRate);
-  if (emDashDiff > 12) {
+  if (emDashDiff > 8) {
     flags.push(`Em dash usage ${docEmDashRate}% vs profile ${profileEmDashRate}%`);
     fixes.push(docEmDashRate < profileEmDashRate
       ? `Add em dashes — profile uses them in ${profileEmDashRate}% of sentences.`
@@ -335,24 +335,97 @@ function checkVoiceConformance(text, rawText, profile) {
     }
   }
 
+  // Information density — meaning per word
+  // Detect padding: filler phrases, redundant qualifiers, saying-the-same-thing-twice
+  if (sentences.length > 5) {
+    const paddingPatterns = [
+      /\bin terms of\b/gi,
+      /\bin order to\b/gi,
+      /\bdue to the fact that\b/gi,
+      /\bit is worth noting that\b/gi,
+      /\bwith respect to\b/gi,
+      /\bin the context of\b/gi,
+      /\bfor the purpose of\b/gi,
+      /\bat this point in time\b/gi,
+      /\bin the event that\b/gi,
+      /\bas a result of\b/gi,
+      /\bwith regard to\b/gi,
+      /\bin light of\b/gi,
+      /\bgoing forward\b/gi,
+      /\bmoving forward\b/gi,
+      /\bat the end of the day\b/gi,
+      /\bneedless to say\b/gi,
+      /\bit goes without saying\b/gi,
+      /\bthe fact that\b/gi,
+      /\bin this regard\b/gi,
+      /\bplease don't hesitate\b/gi,
+      /\bwe look forward to\b/gi,
+      /\bI would like to\b/gi,
+      /\bI wanted to follow up\b/gi,
+      /\bthank you for taking the time\b/gi,
+      /\bas (?:we )?mentioned (?:during|in|above|earlier|previously)\b/gi,
+      /\bit was a productive\b/gi,
+      /\bwe are committed to\b/gi,
+      /\bwe believe that\b/gi,
+      /\bwe understand that\b/gi,
+      /\bpositions us well\b/gi,
+      /\bthe opportunity to\b/gi,
+      /\bensuring minimal disruption\b/gi,
+    ];
+
+    // Redundancy: adjective-noun pairs that say nothing
+    const fluffPairs = [
+      /\bunique combination\b/gi,
+      /\bextensive experience\b/gi,
+      /\bcritical priority\b/gi,
+      /\bdetailed overview\b/gi,
+      /\bactionable insights?\b/gi,
+      /\bkey (?:points?|takeaways?|considerations?)\b/gi,
+      /\bcore (?:capabilities|competencies|strengths)\b/gi,
+      /\bstrategic (?:initiative|approach|direction|alignment)\b/gi,
+      /\bseamless (?:integration|transition|experience)\b/gi,
+      /\bindustry[- ]leading\b/gi,
+      /\bworld[- ]class\b/gi,
+      /\bdeep (?:expertise|knowledge|understanding)\b/gi,
+      /\bbroad (?:range|spectrum|array)\b/gi,
+      /\bproven (?:track record|methodology|approach)\b/gi,
+      /\bmeaningful (?:impact|results|outcomes|progress)\b/gi,
+    ];
+
+    let paddingHits = 0;
+    for (const p of [...paddingPatterns, ...fluffPairs]) {
+      const matches = text.match(p);
+      if (matches) paddingHits += matches.length;
+    }
+
+    // Density score: padding hits per 100 words
+    const paddingRate = (paddingHits / Math.max(totalWords, 1)) * 100;
+
+    if (paddingRate > 0.5) {
+      flags.push(`Information density low: ${paddingHits} padding phrases in ${totalWords} words (${paddingRate.toFixed(1)} per 100)`);
+      fixes.push(`Cut the padding. Say it once, mean it, move on.`);
+      deductions += Math.min(paddingHits * 5, 40);
+    }
+  }
+
   const score = Math.max(0, 100 - deductions);
-  return { name: "Voice conformance", weight: 20, score, flags, fixes };
+  return { name: "Voice conformance", weight: 30, score, flags, fixes };
 }
 
 export function scoreDocument(rawText, profile) {
   const text = stripMarkdown(rawText);
-  const PASS_THRESHOLD = 70;
+  const PASS_THRESHOLD = 81;
 
   const checks = [
-    checkBannedWords(text, profile),
-    checkFillerOpeners(text),
-    checkSentenceLength(text, profile),
-    checkParagraphStructure(text, profile),
-    checkHedging(text),
-    checkPassiveVoice(text, profile),
-    checkAITriple(rawText),
-    checkBulletWalls(rawText, profile),
-    checkVoiceConformance(text, rawText, profile),
+    checkBannedWords(text, profile),        // 15%
+    checkFillerOpeners(text),               // 10%
+    checkSentenceLength(text, profile),     // 15%
+    checkParagraphStructure(text, profile), // 10%
+    checkHedging(text),                     // 5%
+    checkPassiveVoice(text, profile),       // 5%
+    checkAITriple(rawText),                 // 5%
+    checkBulletWalls(rawText, profile),     // 5%
+    checkVoiceConformance(text, rawText, profile), // 30%
   ];
 
   const totalWeight = checks.reduce((sum, c) => sum + c.weight, 0);

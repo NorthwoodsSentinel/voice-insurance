@@ -72,7 +72,7 @@ voice-insurance compare alice.json bob.json
 | Bullet walls | 10% | 7+ consecutive bullets without prose |
 | Voice conformance | 20% | Em dashes, contractions, list ratio, paragraph density |
 
-Score >= 70 = PASS. Below 70 = rewrite.
+Score >= 81 = PASS. Below 81 = rewrite. The threshold is calibrated to the score of a real document that passed expert human review.
 
 ## Why
 
