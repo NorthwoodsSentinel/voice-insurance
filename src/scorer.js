@@ -2,7 +2,30 @@
  * Voice scorer — checks a document against a voice profile
  */
 
-import { stripMarkdown, extractSentences, extractParagraphs, wordCount } from "./extractor.js";
+import { extractSentences, extractParagraphs, wordCount } from "./extractor.js";
+
+// Enhanced strip that handles structural formatting better than the extractor's version
+function stripForScoring(text) {
+  return text
+    .replace(/^---[\s\S]*?---\n*/m, "")           // frontmatter
+    .replace(/^#{1,6}\s+.*$/gm, "")               // headers
+    .replace(/\|.*\|/g, "")                        // table rows
+    .replace(/[-|:]+\s*[-|:]+/g, "")               // table separators
+    .replace(/\*\*([^*]+)\*\*/g, "$1")             // bold
+    .replace(/\*([^*]+)\*/g, "$1")                 // italic
+    .replace(/^\s*[-*•]\s+/gm, "")                 // bullet markers (content stays as prose)
+    .replace(/^\d+\.\s+/gm, "")                    // numbered list markers
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")       // links
+    .replace(/`[^`]+`/g, "")                       // inline code
+    .replace(/```[\s\S]*?```/g, "")                // code blocks
+    .replace(/>\s*/g, "")                          // blockquotes
+    .replace(/\s—\s/g, ". ")                       // structural em dashes → periods
+    .replace(/—\s/g, ". ")                         // em dash at start of clause
+    .replace(/\s—$/gm, ".")                        // em dash at end of line
+    .replace(/—/g, ", ")                           // remaining em dashes → commas (mid-word asides)
+    .replace(/\n{3,}/g, "\n\n")                    // excess newlines
+    .trim();
+}
 
 const AI_FILLER_WORDS = [
   "certainly", "indeed", "furthermore", "moreover", "additionally",
@@ -267,17 +290,18 @@ function checkVoiceConformance(text, rawText, profile) {
   const sentences = extractSentences(text);
   const paragraphs = extractParagraphs(text);
 
-  // Em dash conformance
+  // Em dash conformance — structural dashes already converted by stripForScoring
+  // Only real stylistic em dashes remain in the scored text
   const profileEmDashRate = profile.vocabulary?.emDashUsageRate || 0;
   const docEmDashes = (text.match(/—/g) || []).length;
   const docEmDashRate = sentences.length > 0 ? Math.round((docEmDashes / sentences.length) * 100) : 0;
   const emDashDiff = Math.abs(docEmDashRate - profileEmDashRate);
-  if (emDashDiff > 8) {
+  if (emDashDiff > 10) {
     flags.push(`Em dash usage ${docEmDashRate}% vs profile ${profileEmDashRate}%`);
     fixes.push(docEmDashRate < profileEmDashRate
       ? `Add em dashes — profile uses them in ${profileEmDashRate}% of sentences.`
       : `Reduce em dashes — profile uses ${profileEmDashRate}%, you're at ${docEmDashRate}%.`);
-    deductions += Math.min(emDashDiff - 10, 30);
+    deductions += Math.min(emDashDiff - 8, 25);
   }
 
   // Contraction rate
@@ -413,7 +437,7 @@ function checkVoiceConformance(text, rawText, profile) {
 }
 
 export function scoreDocument(rawText, profile) {
-  const text = stripMarkdown(rawText);
+  const text = stripForScoring(rawText);
   const PASS_THRESHOLD = 81;
 
   const checks = [
