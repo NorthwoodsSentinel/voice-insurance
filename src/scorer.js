@@ -304,18 +304,31 @@ function checkVoiceConformance(text, rawText, profile) {
     deductions += Math.min(emDashDiff - 8, 25);
   }
 
-  // Contraction rate
+  // Contraction rate — count both apostrophe styles + informal no-apostrophe contractions
   const profileContractionRate = profile.vocabulary?.contractionRate || 3;
-  const contractions = text.match(/\b\w+'\w+\b/g) || [];
+  const formalContractions = text.match(/\b\w+['']\w+\b/g) || [];  // don't, don't (both quote types)
+  const informalContractions = text.match(/\b(dont|cant|wont|isnt|wasnt|doesnt|didnt|wouldnt|couldnt|shouldnt|hasnt|havent|hadnt|im|ive|ill|youre|youve|youll|theyre|theyve|theyll|weve|were|wed|hes|shes|its|thats|whats|whos|wheres|hows|aint)\b/gi) || [];
+  const allContractions = formalContractions.length + informalContractions.length;
   const totalWords = text.split(/\s+/).filter(Boolean).length;
-  const docContractionRate = totalWords > 0 ? Math.round((contractions.length / totalWords) * 10000) / 100 : 0;
+  const docContractionRate = totalWords > 0 ? Math.round((allContractions / totalWords) * 10000) / 100 : 0;
   const contractionDiff = Math.abs(docContractionRate - profileContractionRate);
   if (contractionDiff > 3) {
     flags.push(`Contraction rate ${docContractionRate}% vs profile ${profileContractionRate}%`);
     fixes.push(docContractionRate < profileContractionRate
-      ? `Use more contractions — "don't" not "do not".`
+      ? `Use more contractions — write "don't" not "do not", or even "dont" if it's casual.`
       : `Fewer contractions — profile uses ${profileContractionRate}%.`);
     deductions += Math.min(contractionDiff * 3, 20);
+  }
+
+  // Smart quote detection — AI/word processors use curly quotes, humans type straight ones
+  const smartQuotes = (rawText.match(/[\u2018\u2019\u201C\u201D]/g) || []).length;
+  const straightQuotes = (rawText.match(/['"]/g) || []).length;
+  const totalQuotes = smartQuotes + straightQuotes;
+  if (totalQuotes > 3 && smartQuotes > straightQuotes) {
+    const smartRate = Math.round((smartQuotes / totalQuotes) * 100);
+    flags.push(`Smart quotes ${smartRate}% — AI/word processor artifact`);
+    fixes.push(`Replace curly quotes (\u2018\u2019\u201C\u201D) with straight ones ('"). Human typing uses straight quotes.`);
+    deductions += Math.min(Math.round(smartRate / 5), 15);
   }
 
   // List-to-prose ratio
