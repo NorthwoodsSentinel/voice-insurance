@@ -1,0 +1,31 @@
+{
+  "name": "voice-insurance",
+  "version": "0.1.0",
+  "description": "Forensic stylometric instrument — ensures AI-assisted content matches your natural voice",
+  "author": "FlowLabs <rob@projectflow.life>",
+  "license": "MIT",
+  "bin": {
+    "voice-insurance": "./bin/cli.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "keywords": [
+    "stylometry",
+    "voice",
+    "ai-detection",
+    "writing",
+    "forensic",
+    "voice-profile"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NorthwoodsSentinel/voice-insurance"
+  }
+}
