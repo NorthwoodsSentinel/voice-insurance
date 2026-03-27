@@ -86,6 +86,10 @@ The corpus is the moat. Every user's voice is unique.
 
 MIT
 
-## Built by
+---
 
-[FlowLabs](https://projectflow.life) — cognitive instrumentation for professionals.
+## Northwoods Sentinel Labs
+
+Part of the [Northwoods Sentinel Labs](https://northwoodssentinel.com) ecosystem — open-source tools for human-centered AI.
+
+[Blog](https://northwoodssentinel.com) · [Substack](https://substack.com/@chewvala) · [GitHub](https://github.com/NorthwoodsSentinel)
