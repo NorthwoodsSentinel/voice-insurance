@@ -41,7 +41,8 @@ restructure the CLI just to make testing easier.
   documents; editing one changes pinned numbers).
 - `scripts/check-coverage-scope.mjs` — gate tooling.
 
-Only `bin/`, `src/` and `README.md` are published (`files` in `package.json`).
+The npm package holds `bin/`, `src/` and `README.md` (`files` in `package.json`), plus `package.json` and
+`LICENSE`, which npm always includes (`npm pack --dry-run` lists them).
 
 ## Development setup
 
