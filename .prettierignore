@@ -1,0 +1,5 @@
+# Files `npm run format` and `npm run format:check` leave alone.
+# Prettier also skips everything in .gitignore (node_modules/, coverage/, .scratch/).
+package-lock.json
+# Markdown is prose; prettier would reflow it.
+*.md

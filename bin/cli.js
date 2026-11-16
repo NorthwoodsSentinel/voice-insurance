@@ -10,7 +10,6 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { resolve } from "path";
 import { collectFiles, buildProfile } from "../src/extractor.js";
 import { scoreDocument } from "../src/scorer.js";
 
@@ -93,7 +92,9 @@ function runExtract() {
   console.log(`  Fragment rate:     ${profile.sentences?.fragmentRate}%`);
   console.log(`  Em dash usage:     ${profile.vocabulary.emDashUsageRate}%`);
   console.log(`  Passive voice:     ${profile.vocabulary.passiveVoiceRate}%`);
-  console.log(`  AI words avoided:  ${profile.vocabulary.neverUsedAIWords.length}/${33}`);
+  console.log(
+    `  AI words avoided:  ${profile.vocabulary.neverUsedAIWords.length}/${33}`,
+  );
   console.log(`  Profile saved:     ${outputPath}`);
 
   if (verbose) {
@@ -108,7 +109,9 @@ function runExtract() {
 
 // --- SCORE ---
 async function runScore() {
-  const filePath = args.find((a, i) => i > 0 && !a.startsWith("--") && args[i - 1] !== "--profile");
+  const filePath = args.find(
+    (a, i) => i > 0 && !a.startsWith("--") && args[i - 1] !== "--profile",
+  );
   const profilePath = getFlag("--profile") || "voice-profile.json";
   const verbose = hasFlag("--verbose");
   const fixMode = hasFlag("--fix");
@@ -133,10 +136,19 @@ async function runScore() {
   }
 
   const profile = JSON.parse(readFileSync(profilePath, "utf-8"));
-  const { checks, finalScore, pass, threshold } = scoreDocument(rawText, profile);
+  const { checks, finalScore, pass, threshold } = scoreDocument(
+    rawText,
+    profile,
+  );
 
   if (jsonOutput) {
-    console.log(JSON.stringify({ score: finalScore, pass, checks, profile: profile.meta }, null, 2));
+    console.log(
+      JSON.stringify(
+        { score: finalScore, pass, checks, profile: profile.meta },
+        null,
+        2,
+      ),
+    );
     process.exit(pass ? 0 : 1);
   }
 
@@ -150,13 +162,16 @@ async function runScore() {
   for (const check of checks) {
     const checkIcon = check.score >= 80 ? "✓" : check.score >= 50 ? "△" : "✗";
     const scoreStr = `${Math.round(check.score)}`.padStart(3);
-    console.log(`  ${checkIcon} ${check.name.padEnd(22)} ${scoreStr}/100  (${check.weight}%)`);
+    console.log(
+      `  ${checkIcon} ${check.name.padEnd(22)} ${scoreStr}/100  (${check.weight}%)`,
+    );
 
     if ((verbose || fixMode) && check.flags.length > 0) {
       for (const flag of check.flags.slice(0, 5)) {
         console.log(`      → ${flag}`);
       }
-      if (check.flags.length > 5) console.log(`      ... and ${check.flags.length - 5} more`);
+      if (check.flags.length > 5)
+        console.log(`      ... and ${check.flags.length - 5} more`);
     }
 
     if (fixMode && check.fixes.length > 0) {
@@ -181,7 +196,9 @@ function runCompare() {
   const p2Path = args[2];
 
   if (!p1Path || !p2Path || !existsSync(p1Path) || !existsSync(p2Path)) {
-    console.error("  Usage: voice-insurance compare <profile1.json> <profile2.json>");
+    console.error(
+      "  Usage: voice-insurance compare <profile1.json> <profile2.json>",
+    );
     process.exit(1);
   }
 
@@ -193,21 +210,59 @@ function runCompare() {
 
   const metrics = [
     ["Avg sentence length", p1.sentences?.avgLength, p2.sentences?.avgLength],
-    ["Burstiness", `${p1.sentences?.burstiness}%`, `${p2.sentences?.burstiness}%`],
-    ["Fragment rate", `${p1.sentences?.fragmentRate}%`, `${p2.sentences?.fragmentRate}%`],
-    ["Avg paragraph (sents)", p1.paragraphs?.avgSentencesPerParagraph, p2.paragraphs?.avgSentencesPerParagraph],
-    ["Single-sentence ¶", `${p1.paragraphs?.distribution?.singleSentence}%`, `${p2.paragraphs?.distribution?.singleSentence}%`],
-    ["Em dash usage", `${p1.vocabulary?.emDashUsageRate}%`, `${p2.vocabulary?.emDashUsageRate}%`],
-    ["Contractions", `${p1.vocabulary?.contractionRate}%`, `${p2.vocabulary?.contractionRate}%`],
-    ["Passive voice", `${p1.vocabulary?.passiveVoiceRate}%`, `${p2.vocabulary?.passiveVoiceRate}%`],
-    ["List-to-prose", `${p1.structure?.listToProse}%`, `${p2.structure?.listToProse}%`],
-    ["Top word", p1.vocabulary?.topWords?.[0]?.word, p2.vocabulary?.topWords?.[0]?.word],
+    [
+      "Burstiness",
+      `${p1.sentences?.burstiness}%`,
+      `${p2.sentences?.burstiness}%`,
+    ],
+    [
+      "Fragment rate",
+      `${p1.sentences?.fragmentRate}%`,
+      `${p2.sentences?.fragmentRate}%`,
+    ],
+    [
+      "Avg paragraph (sents)",
+      p1.paragraphs?.avgSentencesPerParagraph,
+      p2.paragraphs?.avgSentencesPerParagraph,
+    ],
+    [
+      "Single-sentence ¶",
+      `${p1.paragraphs?.distribution?.singleSentence}%`,
+      `${p2.paragraphs?.distribution?.singleSentence}%`,
+    ],
+    [
+      "Em dash usage",
+      `${p1.vocabulary?.emDashUsageRate}%`,
+      `${p2.vocabulary?.emDashUsageRate}%`,
+    ],
+    [
+      "Contractions",
+      `${p1.vocabulary?.contractionRate}%`,
+      `${p2.vocabulary?.contractionRate}%`,
+    ],
+    [
+      "Passive voice",
+      `${p1.vocabulary?.passiveVoiceRate}%`,
+      `${p2.vocabulary?.passiveVoiceRate}%`,
+    ],
+    [
+      "List-to-prose",
+      `${p1.structure?.listToProse}%`,
+      `${p2.structure?.listToProse}%`,
+    ],
+    [
+      "Top word",
+      p1.vocabulary?.topWords?.[0]?.word,
+      p2.vocabulary?.topWords?.[0]?.word,
+    ],
   ];
 
   console.log();
   console.log(`  Voice Comparison`);
   console.log(`  ════════════════════════════════════════════`);
-  console.log(`  ${"Dimension".padEnd(24)} ${String(name1).substring(0, 10).padEnd(12)} ${String(name2).substring(0, 10)}`);
+  console.log(
+    `  ${"Dimension".padEnd(24)} ${String(name1).substring(0, 10).padEnd(12)} ${String(name2).substring(0, 10)}`,
+  );
   console.log(`  ${"─".repeat(24)} ${"─".repeat(12)} ${"─".repeat(12)}`);
 
   for (const [label, v1, v2] of metrics) {

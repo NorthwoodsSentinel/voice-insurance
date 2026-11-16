@@ -1,0 +1,35 @@
+# CI: the same four checks `npm run local:gate` runs (format check, lint, typecheck, tests with the 90% per-file
+# coverage bar and the coverage-scope check). Run as separate steps so a failure names its stage; CI never calls a
+# `local:*` script (AGENTS.md "Mandatory pre-push gate").
+#
+# This workflow NEVER deploys or publishes. It holds no secret and its token is read-only. Releasing is a human act;
+# do not add a deploy or publish job here.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege for GITHUB_TOKEN: nothing here writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    # Hung-job guard, not a flake remedy: the gate runs in seconds locally.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the major version the gate was measured with.
+          node-version: 22
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
