@@ -49,7 +49,7 @@ Only `bin/`, `src/` and `README.md` are published (`files` in `package.json`).
   `>=18`; the development tooling was measured on Node 22, which CI uses.
 - Tests run on Vitest with `@vitest/coverage-v8`, the source's choice.
 - No account or secret is needed. Installing the dependencies (`npm ci`) uses the network; after that, no gate step
-  does. Tests write only to a temp directory.
+  does. Tests write their files to a temp directory; the coverage run writes `coverage/` (git-ignored).
 
 ## Issue-driven work style
 
