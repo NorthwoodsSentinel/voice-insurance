@@ -48,7 +48,8 @@ Only `bin/`, `src/` and `README.md` are published (`files` in `package.json`).
 - `npm ci`. Tooling runs on npm, the source's runner. The tool itself needs no install step and declares Node
   `>=18`; the development tooling was measured on Node 22, which CI uses.
 - Tests run on Vitest with `@vitest/coverage-v8`, the source's choice.
-- No account, secret or network is needed for any gate step. Tests write only to a temp directory.
+- No account or secret is needed. Installing the dependencies (`npm ci`) uses the network; after that, no gate step
+  does. Tests write only to a temp directory.
 
 ## Issue-driven work style
 
