@@ -5,14 +5,39 @@
 const SUPPORTED_EXTENSIONS = new Set([".md", ".txt", ".mdx", ".eml"]);
 
 const AI_FILLER_WORDS = [
-  "certainly", "indeed", "furthermore", "moreover", "additionally",
-  "it's worth noting", "in today's landscape", "in conclusion",
-  "it is important to note", "based on the analysis", "comprehensive",
-  "robust", "holistic", "cutting-edge", "innovative", "best-in-class",
-  "paradigm", "utilize", "leverage", "synergize", "stakeholders",
-  "delve", "tapestry", "multifaceted", "nuanced", "streamline",
-  "facilitate", "endeavor", "aforementioned", "subsequently",
-  "in summary", "to summarize", "as previously mentioned"
+  "certainly",
+  "indeed",
+  "furthermore",
+  "moreover",
+  "additionally",
+  "it's worth noting",
+  "in today's landscape",
+  "in conclusion",
+  "it is important to note",
+  "based on the analysis",
+  "comprehensive",
+  "robust",
+  "holistic",
+  "cutting-edge",
+  "innovative",
+  "best-in-class",
+  "paradigm",
+  "utilize",
+  "leverage",
+  "synergize",
+  "stakeholders",
+  "delve",
+  "tapestry",
+  "multifaceted",
+  "nuanced",
+  "streamline",
+  "facilitate",
+  "endeavor",
+  "aforementioned",
+  "subsequently",
+  "in summary",
+  "to summarize",
+  "as previously mentioned",
 ];
 
 import { readFileSync, existsSync, readdirSync } from "fs";
@@ -35,7 +60,10 @@ export function collectFiles(corpusDir, specificFiles) {
         const full = join(dir, entry.name);
         if (entry.isDirectory() && !entry.name.startsWith(".")) {
           walk(full);
-        } else if (entry.isFile() && SUPPORTED_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+        } else if (
+          entry.isFile() &&
+          SUPPORTED_EXTENSIONS.has(extname(entry.name).toLowerCase())
+        ) {
           files.push(full);
         }
       }
@@ -67,12 +95,15 @@ export function stripMarkdown(text) {
 export function extractSentences(text) {
   return text
     .split(/(?<=[.!?])\s+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 10 && /[.!?]$/.test(s));
+    .map((s) => s.trim())
+    .filter((s) => s.length > 10 && /[.!?]$/.test(s));
 }
 
 export function extractParagraphs(text) {
-  return text.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 20);
+  return text
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 20);
 }
 
 export function wordCount(s) {
@@ -80,7 +111,7 @@ export function wordCount(s) {
 }
 
 function analyzeSentences(sentences) {
-  const lengths = sentences.map(s => wordCount(s));
+  const lengths = sentences.map((s) => wordCount(s));
   const total = lengths.length;
   if (total === 0) return null;
 
@@ -89,12 +120,13 @@ function analyzeSentences(sentences) {
   const median = sorted[Math.floor(total / 2)];
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
-  const variance = lengths.reduce((sum, l) => sum + Math.pow(l - avg, 2), 0) / total;
+  const variance =
+    lengths.reduce((sum, l) => sum + Math.pow(l - avg, 2), 0) / total;
   const stdDev = Math.sqrt(variance);
 
-  const short = lengths.filter(l => l <= 8).length;
-  const medium = lengths.filter(l => l > 8 && l <= 20).length;
-  const long = lengths.filter(l => l > 20).length;
+  const short = lengths.filter((l) => l <= 8).length;
+  const medium = lengths.filter((l) => l > 8 && l <= 20).length;
+  const long = lengths.filter((l) => l > 20).length;
 
   let bursts = 0;
   for (let i = 1; i < lengths.length; i++) {
@@ -104,12 +136,14 @@ function analyzeSentences(sentences) {
   let maxConsecutiveLong = 0;
   let currentRun = 0;
   for (const l of lengths) {
-    if (l > 20) { currentRun++; maxConsecutiveLong = Math.max(maxConsecutiveLong, currentRun); }
-    else currentRun = 0;
+    if (l > 20) {
+      currentRun++;
+      maxConsecutiveLong = Math.max(maxConsecutiveLong, currentRun);
+    } else currentRun = 0;
   }
 
-  const fragments = sentences.filter(s => wordCount(s) <= 6);
-  const andButStarts = sentences.filter(s => /^(And|But)\s/i.test(s)).length;
+  const fragments = sentences.filter((s) => wordCount(s) <= 6);
+  const andButStarts = sentences.filter((s) => /^(And|But)\s/i.test(s)).length;
 
   return {
     count: total,
@@ -132,23 +166,28 @@ function analyzeSentences(sentences) {
 }
 
 function analyzeParagraphs(paragraphs) {
-  const sentenceCounts = paragraphs.map(p => extractSentences(p).length);
+  const sentenceCounts = paragraphs.map((p) => extractSentences(p).length);
   const total = sentenceCounts.length;
   if (total === 0) return null;
 
   const avg = sentenceCounts.reduce((a, b) => a + b, 0) / total;
-  const single = sentenceCounts.filter(c => c === 1).length;
-  const short = sentenceCounts.filter(c => c >= 2 && c <= 3).length;
-  const medium = sentenceCounts.filter(c => c >= 4 && c <= 5).length;
-  const long = sentenceCounts.filter(c => c >= 6).length;
-  const variance = sentenceCounts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / total;
+  const single = sentenceCounts.filter((c) => c === 1).length;
+  const short = sentenceCounts.filter((c) => c >= 2 && c <= 3).length;
+  const medium = sentenceCounts.filter((c) => c >= 4 && c <= 5).length;
+  const long = sentenceCounts.filter((c) => c >= 6).length;
+  const variance =
+    sentenceCounts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / total;
   const stdDev = Math.sqrt(variance);
 
-  const topicFirst = paragraphs.filter(p => {
+  const topicFirst = paragraphs.filter((p) => {
     const firstSentence = p.split(/[.!?]/)[0]?.trim() || "";
-    return !/^(But|And|When|If|However|Although|While|Since|Because|Or|Yet|So|After|Before|During)\s/i.test(firstSentence)
-      && !/^["']/.test(firstSentence)
-      && firstSentence.length > 20;
+    return (
+      !/^(But|And|When|If|However|Although|While|Since|Because|Or|Yet|So|After|Before|During)\s/i.test(
+        firstSentence,
+      ) &&
+      !/^["']/.test(firstSentence) &&
+      firstSentence.length > 20
+    );
   }).length;
 
   return {
@@ -167,7 +206,7 @@ function analyzeParagraphs(paragraphs) {
 
 function analyzeVocabulary(text) {
   const lower = text.toLowerCase();
-  const words = lower.split(/\s+/).filter(w => w.length > 2);
+  const words = lower.split(/\s+/).filter((w) => w.length > 2);
   const totalWords = words.length;
 
   const freq = new Map();
@@ -176,38 +215,99 @@ function analyzeVocabulary(text) {
     if (clean.length > 2) freq.set(clean, (freq.get(clean) || 0) + 1);
   }
 
-  const stopwords = new Set(["the", "and", "that", "this", "with", "for", "are", "was", "were", "been",
-    "have", "has", "had", "not", "but", "what", "all", "can", "her", "his", "him",
-    "how", "its", "may", "our", "out", "you", "who", "which", "their", "them",
-    "then", "there", "these", "they", "from", "will", "would", "could", "should",
-    "into", "about", "more", "some", "than", "other", "very", "just", "also"]);
+  const stopwords = new Set([
+    "the",
+    "and",
+    "that",
+    "this",
+    "with",
+    "for",
+    "are",
+    "was",
+    "were",
+    "been",
+    "have",
+    "has",
+    "had",
+    "not",
+    "but",
+    "what",
+    "all",
+    "can",
+    "her",
+    "his",
+    "him",
+    "how",
+    "its",
+    "may",
+    "our",
+    "out",
+    "you",
+    "who",
+    "which",
+    "their",
+    "them",
+    "then",
+    "there",
+    "these",
+    "they",
+    "from",
+    "will",
+    "would",
+    "could",
+    "should",
+    "into",
+    "about",
+    "more",
+    "some",
+    "than",
+    "other",
+    "very",
+    "just",
+    "also",
+  ]);
 
   const topWords = [...freq.entries()]
     .filter(([word]) => !stopwords.has(word))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 50)
-    .map(([word, count]) => ({ word, count, rate: Math.round((count / totalWords) * 10000) / 100 }));
+    .map(([word, count]) => ({
+      word,
+      count,
+      rate: Math.round((count / totalWords) * 10000) / 100,
+    }));
 
   const fillerUsage = {};
   for (const filler of AI_FILLER_WORDS) {
-    const regex = new RegExp(filler.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+    const regex = new RegExp(
+      filler.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "gi",
+    );
     const matches = lower.match(regex);
     if (matches) fillerUsage[filler] = matches.length;
   }
 
-  const neverUsed = AI_FILLER_WORDS.filter(f => !fillerUsage[f]);
+  const neverUsed = AI_FILLER_WORDS.filter((f) => !fillerUsage[f]);
 
-  const passivePattern = /\b(was|were|been|being|is|are)\s+([\w]+ed|[\w]+en)\b/gi;
+  const passivePattern =
+    /\b(was|were|been|being|is|are)\s+([\w]+ed|[\w]+en)\b/gi;
   const passiveMatches = text.match(passivePattern) || [];
   const sentences = extractSentences(text);
-  const passiveRate = sentences.length > 0 ? Math.round((passiveMatches.length / sentences.length) * 100) : 0;
+  const passiveRate =
+    sentences.length > 0
+      ? Math.round((passiveMatches.length / sentences.length) * 100)
+      : 0;
 
   const contractionPattern = /\b\w+'\w+\b/g;
   const contractions = text.match(contractionPattern) || [];
-  const contractionRate = totalWords > 0 ? Math.round((contractions.length / totalWords) * 10000) / 100 : 0;
+  const contractionRate =
+    totalWords > 0
+      ? Math.round((contractions.length / totalWords) * 10000) / 100
+      : 0;
 
   const emDashes = (text.match(/—/g) || []).length;
-  const emDashRate = sentences.length > 0 ? Math.round((emDashes / sentences.length) * 100) : 0;
+  const emDashRate =
+    sentences.length > 0 ? Math.round((emDashes / sentences.length) * 100) : 0;
 
   return {
     totalWords,
@@ -224,48 +324,64 @@ function analyzeVocabulary(text) {
 
 function analyzeStructure(rawText) {
   const lines = rawText.split("\n");
-  const bulletLines = lines.filter(l => /^\s*[-*•]\s/.test(l)).length;
-  const numberedLines = lines.filter(l => /^\s*\d+[.)]\s/.test(l)).length;
-  const totalContentLines = lines.filter(l => l.trim().length > 0).length;
+  const bulletLines = lines.filter((l) => /^\s*[-*•]\s/.test(l)).length;
+  const numberedLines = lines.filter((l) => /^\s*\d+[.)]\s/.test(l)).length;
+  const totalContentLines = lines.filter((l) => l.trim().length > 0).length;
   const listLines = bulletLines + numberedLines;
 
-  const headers = lines.filter(l => /^#{1,6}\s/.test(l));
-  const headerWords = headers.map(h => wordCount(h.replace(/^#+\s*/, "")));
+  const headers = lines.filter((l) => /^#{1,6}\s/.test(l));
+  const headerWords = headers.map((h) => wordCount(h.replace(/^#+\s*/, "")));
 
   let maxBulletRun = 0;
   let currentRun = 0;
   for (const line of lines) {
-    if (/^\s*[-*•]\s/.test(line)) { currentRun++; maxBulletRun = Math.max(maxBulletRun, currentRun); }
-    else if (line.trim().length > 0) currentRun = 0;
+    if (/^\s*[-*•]\s/.test(line)) {
+      currentRun++;
+      maxBulletRun = Math.max(maxBulletRun, currentRun);
+    } else if (line.trim().length > 0) currentRun = 0;
   }
 
   return {
-    listToProse: totalContentLines > 0 ? Math.round((listLines / totalContentLines) * 100) : 0,
+    listToProse:
+      totalContentLines > 0
+        ? Math.round((listLines / totalContentLines) * 100)
+        : 0,
     bulletLineCount: bulletLines,
     numberedLineCount: numberedLines,
     maxConsecutiveBullets: maxBulletRun,
     headerCount: headers.length,
-    avgHeaderWordCount: headerWords.length > 0 ? Math.round(headerWords.reduce((a, b) => a + b, 0) / headerWords.length * 10) / 10 : 0,
+    avgHeaderWordCount:
+      headerWords.length > 0
+        ? Math.round(
+            (headerWords.reduce((a, b) => a + b, 0) / headerWords.length) * 10,
+          ) / 10
+        : 0,
   };
 }
 
 function analyzeOpeningsClosings(paragraphs) {
   if (paragraphs.length < 2) return null;
 
-  const openings = paragraphs.slice(0, 3).map(p => {
+  const openings = paragraphs.slice(0, 3).map((p) => {
     const firstSentence = p.split(/[.!?]/)[0]?.trim() || "";
     return firstSentence.substring(0, 100);
   });
 
-  const closings = paragraphs.slice(-3).map(p => {
-    const sentences = p.split(/[.!?]/).filter(s => s.trim().length > 5);
+  const closings = paragraphs.slice(-3).map((p) => {
+    const sentences = p.split(/[.!?]/).filter((s) => s.trim().length > 5);
     const lastSentence = sentences[sentences.length - 1]?.trim() || "";
     return lastSentence.substring(0, 100);
   });
 
   const lastParagraph = paragraphs[paragraphs.length - 1].toLowerCase();
-  const endsSummary = /in (summary|conclusion)|to (summarize|conclude)|overall/.test(lastParagraph);
-  const endsForward = /next|will|going to|what's (next|coming)|the future|moving forward/.test(lastParagraph);
+  const endsSummary =
+    /in (summary|conclusion)|to (summarize|conclude)|overall/.test(
+      lastParagraph,
+    );
+  const endsForward =
+    /next|will|going to|what's (next|coming)|the future|moving forward/.test(
+      lastParagraph,
+    );
 
   return {
     openingPatterns: openings,
@@ -304,14 +420,15 @@ export function buildProfile(files) {
     structure: analyzeStructure(allRaw),
     openingsClosings: analyzeOpeningsClosings(paragraphs),
     scoring: {
-      description: "Thresholds derived from this corpus. Documents are scored against these ranges.",
+      description:
+        "Thresholds derived from this corpus. Documents are scored against these ranges.",
       sentenceLength: { target: { min: 0, max: 0 } },
       paragraphLength: { maxSentences: 0 },
       topicSentenceFirstMax: 0,
       maxConsecutiveLong: 0,
       maxConsecutiveBullets: 0,
       passiveVoiceMax: 0,
-    }
+    },
   };
 
   if (profile.sentences) {
@@ -321,16 +438,28 @@ export function buildProfile(files) {
       min: Math.round(Math.max(avg - std, 5)),
       max: Math.round(avg + std),
     };
-    profile.scoring.maxConsecutiveLong = Math.max(profile.sentences.maxConsecutiveLong + 1, 3);
+    profile.scoring.maxConsecutiveLong = Math.max(
+      profile.sentences.maxConsecutiveLong + 1,
+      3,
+    );
   }
 
   if (profile.paragraphs) {
     profile.scoring.paragraphLength.maxSentences = 6;
-    profile.scoring.topicSentenceFirstMax = Math.min(profile.paragraphs.topicSentenceFirstRate + 15, 80);
+    profile.scoring.topicSentenceFirstMax = Math.min(
+      profile.paragraphs.topicSentenceFirstRate + 15,
+      80,
+    );
   }
 
-  profile.scoring.maxConsecutiveBullets = Math.max(profile.structure.maxConsecutiveBullets + 2, 7);
-  profile.scoring.passiveVoiceMax = Math.max((profile.vocabulary.passiveVoiceRate || 0) + 5, 15);
+  profile.scoring.maxConsecutiveBullets = Math.max(
+    profile.structure.maxConsecutiveBullets + 2,
+    7,
+  );
+  profile.scoring.passiveVoiceMax = Math.max(
+    (profile.vocabulary.passiveVoiceRate || 0) + 5,
+    15,
+  );
 
   return profile;
 }

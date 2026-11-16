@@ -7,47 +7,86 @@ import { extractSentences, extractParagraphs, wordCount } from "./extractor.js";
 // Enhanced strip that handles structural formatting better than the extractor's version
 function stripForScoring(text) {
   return text
-    .replace(/^---[\s\S]*?---\n*/m, "")           // frontmatter
-    .replace(/^#{1,6}\s+.*$/gm, "")               // headers
-    .replace(/\|.*\|/g, "")                        // table rows
-    .replace(/[-|:]+\s*[-|:]+/g, "")               // table separators
-    .replace(/\*\*([^*]+)\*\*/g, "$1")             // bold
-    .replace(/\*([^*]+)\*/g, "$1")                 // italic
-    .replace(/^\s*[-*•]\s+/gm, "")                 // bullet markers (content stays as prose)
-    .replace(/^\d+\.\s+/gm, "")                    // numbered list markers
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")       // links
-    .replace(/`[^`]+`/g, "")                       // inline code
-    .replace(/```[\s\S]*?```/g, "")                // code blocks
-    .replace(/>\s*/g, "")                          // blockquotes
-    .replace(/\s—\s/g, ". ")                       // structural em dashes → periods
-    .replace(/—\s/g, ". ")                         // em dash at start of clause
-    .replace(/\s—$/gm, ".")                        // em dash at end of line
-    .replace(/—/g, ", ")                           // remaining em dashes → commas (mid-word asides)
-    .replace(/\n{3,}/g, "\n\n")                    // excess newlines
+    .replace(/^---[\s\S]*?---\n*/m, "") // frontmatter
+    .replace(/^#{1,6}\s+.*$/gm, "") // headers
+    .replace(/\|.*\|/g, "") // table rows
+    .replace(/[-|:]+\s*[-|:]+/g, "") // table separators
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+    .replace(/\*([^*]+)\*/g, "$1") // italic
+    .replace(/^\s*[-*•]\s+/gm, "") // bullet markers (content stays as prose)
+    .replace(/^\d+\.\s+/gm, "") // numbered list markers
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/`[^`]+`/g, "") // inline code
+    .replace(/```[\s\S]*?```/g, "") // code blocks
+    .replace(/>\s*/g, "") // blockquotes
+    .replace(/\s—\s/g, ". ") // structural em dashes → periods
+    .replace(/—\s/g, ". ") // em dash at start of clause
+    .replace(/\s—$/gm, ".") // em dash at end of line
+    .replace(/—/g, ", ") // remaining em dashes → commas (mid-word asides)
+    .replace(/\n{3,}/g, "\n\n") // excess newlines
     .trim();
 }
 
 const AI_FILLER_WORDS = [
-  "certainly", "indeed", "furthermore", "moreover", "additionally",
-  "it's worth noting", "in today's landscape", "in conclusion",
-  "it is important to note", "based on the analysis", "comprehensive",
-  "robust", "holistic", "cutting-edge", "innovative", "best-in-class",
-  "paradigm", "utilize", "leverage", "synergize", "stakeholders",
-  "delve", "tapestry", "multifaceted", "nuanced", "streamline",
-  "facilitate", "endeavor", "aforementioned", "subsequently",
-  "in summary", "to summarize", "as previously mentioned"
+  "certainly",
+  "indeed",
+  "furthermore",
+  "moreover",
+  "additionally",
+  "it's worth noting",
+  "in today's landscape",
+  "in conclusion",
+  "it is important to note",
+  "based on the analysis",
+  "comprehensive",
+  "robust",
+  "holistic",
+  "cutting-edge",
+  "innovative",
+  "best-in-class",
+  "paradigm",
+  "utilize",
+  "leverage",
+  "synergize",
+  "stakeholders",
+  "delve",
+  "tapestry",
+  "multifaceted",
+  "nuanced",
+  "streamline",
+  "facilitate",
+  "endeavor",
+  "aforementioned",
+  "subsequently",
+  "in summary",
+  "to summarize",
+  "as previously mentioned",
 ];
 
 const FILLER_OPENERS = [
-  "certainly,", "indeed,", "absolutely,", "great question",
-  "here is the", "here's the", "in today's", "it's worth noting",
-  "it is important", "based on the analysis", "based on our analysis"
+  "certainly,",
+  "indeed,",
+  "absolutely,",
+  "great question",
+  "here is the",
+  "here's the",
+  "in today's",
+  "it's worth noting",
+  "it is important",
+  "based on the analysis",
+  "based on our analysis",
 ];
 
 const HEDGE_PHRASES = [
-  "it appears that", "it could be argued", "it seems that",
-  "it is possible that", "one might say", "it is worth considering",
-  "it may be the case", "to some extent", "it is generally accepted"
+  "it appears that",
+  "it could be argued",
+  "it seems that",
+  "it is possible that",
+  "one might say",
+  "it is worth considering",
+  "it may be the case",
+  "to some extent",
+  "it is generally accepted",
 ];
 
 function checkBannedWords(text, profile) {
@@ -56,7 +95,10 @@ function checkBannedWords(text, profile) {
   const fixes = [];
 
   for (const word of neverUsed) {
-    const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "gi");
+    const regex = new RegExp(
+      `\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+      "gi",
+    );
     const matches = text.match(regex);
     if (matches) {
       flags.push(`"${word}" found ${matches.length}x`);
@@ -78,40 +120,56 @@ function checkFillerOpeners(text) {
     for (const opener of FILLER_OPENERS) {
       if (lower.startsWith(opener)) {
         flags.push(`Opens with "${s.substring(0, 50)}..."`);
-        fixes.push(`Rewrite: "${s.substring(0, 60)}..." — cut the filler, lead with the point.`);
+        fixes.push(
+          `Rewrite: "${s.substring(0, 60)}..." — cut the filler, lead with the point.`,
+        );
         break;
       }
     }
   }
 
-  const rate = sentences.length > 0 ? (flags.length / sentences.length) * 100 : 0;
+  const rate =
+    sentences.length > 0 ? (flags.length / sentences.length) * 100 : 0;
   const score = rate === 0 ? 100 : Math.max(0, 100 - rate * 20);
   return { name: "Filler openers", weight: 10, score, flags, fixes };
 }
 
 function checkSentenceLength(text, profile) {
   const sentences = extractSentences(text);
-  const lengths = sentences.map(s => wordCount(s));
+  const lengths = sentences.map((s) => wordCount(s));
   const flags = [];
   const fixes = [];
 
-  if (lengths.length === 0) return { name: "Sentence length", weight: 15, score: 100, flags: [], fixes: [] };
+  if (lengths.length === 0)
+    return {
+      name: "Sentence length",
+      weight: 15,
+      score: 100,
+      flags: [],
+      fixes: [],
+    };
 
   const avg = lengths.reduce((a, b) => a + b, 0) / lengths.length;
   const target = profile.scoring?.sentenceLength?.target || { min: 8, max: 22 };
   const profileAvg = profile.sentences?.avgLength || 14;
 
   if (avg < target.min || avg > target.max) {
-    flags.push(`Avg sentence length ${avg.toFixed(1)} words (target: ${target.min}-${target.max})`);
-    fixes.push(`Adjust sentence length — profile averages ${profileAvg} words.`);
+    flags.push(
+      `Avg sentence length ${avg.toFixed(1)} words (target: ${target.min}-${target.max})`,
+    );
+    fixes.push(
+      `Adjust sentence length — profile averages ${profileAvg} words.`,
+    );
   }
 
   const maxConsec = profile.scoring?.maxConsecutiveLong || 3;
   let currentRun = 0;
   let maxRun = 0;
   for (const l of lengths) {
-    if (l > 20) { currentRun++; maxRun = Math.max(maxRun, currentRun); }
-    else currentRun = 0;
+    if (l > 20) {
+      currentRun++;
+      maxRun = Math.max(maxRun, currentRun);
+    } else currentRun = 0;
   }
 
   if (maxRun >= maxConsec) {
@@ -124,10 +182,14 @@ function checkSentenceLength(text, profile) {
   for (let i = 1; i < lengths.length; i++) {
     if (Math.abs(lengths[i] - lengths[i - 1]) > 10) bursts++;
   }
-  const docBurstiness = Math.round((bursts / Math.max(lengths.length - 1, 1)) * 100);
+  const docBurstiness = Math.round(
+    (bursts / Math.max(lengths.length - 1, 1)) * 100,
+  );
 
   if (docBurstiness < profileBurstiness - 15) {
-    flags.push(`Low burstiness: ${docBurstiness}% (profile: ${profileBurstiness}%)`);
+    flags.push(
+      `Low burstiness: ${docBurstiness}% (profile: ${profileBurstiness}%)`,
+    );
     fixes.push(`Rhythm is too uniform. Vary sentence lengths more.`);
   }
 
@@ -140,33 +202,53 @@ function checkParagraphStructure(text, profile) {
   const flags = [];
   const fixes = [];
 
-  if (paragraphs.length < 3) return { name: "Paragraph structure", weight: 10, score: 100, flags: [], fixes: [] };
+  if (paragraphs.length < 3)
+    return {
+      name: "Paragraph structure",
+      weight: 10,
+      score: 100,
+      flags: [],
+      fixes: [],
+    };
 
-  const sentenceCounts = paragraphs.map(p => extractSentences(p).length);
+  const sentenceCounts = paragraphs.map((p) => extractSentences(p).length);
   const maxParagraph = profile.scoring?.paragraphLength?.maxSentences || 6;
 
-  const longParas = sentenceCounts.filter(c => c >= maxParagraph);
+  const longParas = sentenceCounts.filter((c) => c >= maxParagraph);
   if (longParas.length > 0) {
-    flags.push(`${longParas.length} paragraph(s) with ${maxParagraph}+ sentences`);
-    fixes.push(`Break long paragraphs — profile averages ${profile.paragraphs?.avgSentencesPerParagraph || 3} sentences.`);
+    flags.push(
+      `${longParas.length} paragraph(s) with ${maxParagraph}+ sentences`,
+    );
+    fixes.push(
+      `Break long paragraphs — profile averages ${profile.paragraphs?.avgSentencesPerParagraph || 3} sentences.`,
+    );
   }
 
   const uniqueLengths = new Set(sentenceCounts);
   if (uniqueLengths.size <= 2 && paragraphs.length > 5) {
     flags.push(`Paragraph lengths too uniform`);
-    fixes.push(`Vary paragraph length — mix 1-sentence punches with longer blocks.`);
+    fixes.push(
+      `Vary paragraph length — mix 1-sentence punches with longer blocks.`,
+    );
   }
 
   const maxTopicFirst = profile.scoring?.topicSentenceFirstMax || 80;
-  const topicFirst = paragraphs.filter(p => {
+  const topicFirst = paragraphs.filter((p) => {
     const first = p.split(/[.!?]/)[0]?.trim() || "";
-    return !/^(But|And|When|If|However|Although|While|Since|Because|Or|Yet|So)\s/i.test(first)
-      && !/^["']/.test(first) && first.length > 20;
+    return (
+      !/^(But|And|When|If|However|Although|While|Since|Because|Or|Yet|So)\s/i.test(
+        first,
+      ) &&
+      !/^["']/.test(first) &&
+      first.length > 20
+    );
   }).length;
   const topicFirstRate = Math.round((topicFirst / paragraphs.length) * 100);
 
   if (topicFirstRate > maxTopicFirst) {
-    flags.push(`Topic-sentence-first rate ${topicFirstRate}% (max: ${maxTopicFirst}%)`);
+    flags.push(
+      `Topic-sentence-first rate ${topicFirstRate}% (max: ${maxTopicFirst}%)`,
+    );
     fixes.push(`Lead some paragraphs with context, not the conclusion.`);
   }
 
@@ -179,7 +261,10 @@ function checkHedging(text) {
   const fixes = [];
 
   for (const hedge of HEDGE_PHRASES) {
-    const regex = new RegExp(hedge.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+    const regex = new RegExp(
+      hedge.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "gi",
+    );
     const matches = text.match(regex);
     if (matches) {
       flags.push(`"${hedge}" found ${matches.length}x`);
@@ -193,12 +278,16 @@ function checkHedging(text) {
 
 function checkPassiveVoice(text, profile) {
   const sentences = extractSentences(text);
-  const passivePattern = /\b(was|were|been|being|is|are)\s+([\w]+ed|[\w]+en)\b/gi;
+  const passivePattern =
+    /\b(was|were|been|being|is|are)\s+([\w]+ed|[\w]+en)\b/gi;
   const flags = [];
   const fixes = [];
 
   const passiveMatches = text.match(passivePattern) || [];
-  const rate = sentences.length > 0 ? Math.round((passiveMatches.length / sentences.length) * 100) : 0;
+  const rate =
+    sentences.length > 0
+      ? Math.round((passiveMatches.length / sentences.length) * 100)
+      : 0;
   const maxRate = profile.scoring?.passiveVoiceMax || 15;
 
   if (rate > maxRate) {
@@ -237,17 +326,29 @@ function checkAITriple(rawText) {
 }
 
 function checkRun(bullets, flags, fixes) {
-  const starters = bullets.map(b => {
+  const starters = bullets.map((b) => {
     const firstWord = b.split(/\s/)[0]?.toLowerCase() || "";
-    if (/^(ensure|create|deploy|monitor|identify|assess|evaluate|review|implement|establish|develop|provide|support|manage|build|design|enable|deliver|discover|enforce)s?$/i.test(firstWord)) return "verb";
-    if (/^(the|a|an|our|their|this|that|each|every|all|no)$/i.test(firstWord)) return "article";
+    if (
+      /^(ensure|create|deploy|monitor|identify|assess|evaluate|review|implement|establish|develop|provide|support|manage|build|design|enable|deliver|discover|enforce)s?$/i.test(
+        firstWord,
+      )
+    )
+      return "verb";
+    if (/^(the|a|an|our|their|this|that|each|every|all|no)$/i.test(firstWord))
+      return "article";
     return "other";
   });
 
   for (let i = 0; i <= starters.length - 3; i++) {
-    if (starters[i] === starters[i + 1] && starters[i + 1] === starters[i + 2] && starters[i] === "verb") {
+    if (
+      starters[i] === starters[i + 1] &&
+      starters[i + 1] === starters[i + 2] &&
+      starters[i] === "verb"
+    ) {
       flags.push(`3+ verb-led bullets: "${bullets[i].substring(0, 40)}..."`);
-      fixes.push(`Vary bullet structure — start one with a noun phrase or rewrite as prose.`);
+      fixes.push(
+        `Vary bullet structure — start one with a noun phrase or rewrite as prose.`,
+      );
       break;
     }
   }
@@ -294,68 +395,103 @@ function checkVoiceConformance(text, rawText, profile) {
   // Only real stylistic em dashes remain in the scored text
   const profileEmDashRate = profile.vocabulary?.emDashUsageRate || 0;
   const docEmDashes = (text.match(/—/g) || []).length;
-  const docEmDashRate = sentences.length > 0 ? Math.round((docEmDashes / sentences.length) * 100) : 0;
+  const docEmDashRate =
+    sentences.length > 0
+      ? Math.round((docEmDashes / sentences.length) * 100)
+      : 0;
   const emDashDiff = Math.abs(docEmDashRate - profileEmDashRate);
   if (emDashDiff > 10) {
-    flags.push(`Em dash usage ${docEmDashRate}% vs profile ${profileEmDashRate}%`);
-    fixes.push(docEmDashRate < profileEmDashRate
-      ? `Add em dashes — profile uses them in ${profileEmDashRate}% of sentences.`
-      : `Reduce em dashes — profile uses ${profileEmDashRate}%, you're at ${docEmDashRate}%.`);
+    flags.push(
+      `Em dash usage ${docEmDashRate}% vs profile ${profileEmDashRate}%`,
+    );
+    fixes.push(
+      docEmDashRate < profileEmDashRate
+        ? `Add em dashes — profile uses them in ${profileEmDashRate}% of sentences.`
+        : `Reduce em dashes — profile uses ${profileEmDashRate}%, you're at ${docEmDashRate}%.`,
+    );
     deductions += Math.min(emDashDiff - 8, 25);
   }
 
   // Contraction rate — count both apostrophe styles + informal no-apostrophe contractions
   const profileContractionRate = profile.vocabulary?.contractionRate || 3;
-  const formalContractions = text.match(/\b\w+['']\w+\b/g) || [];  // don't, don't (both quote types)
-  const informalContractions = text.match(/\b(dont|cant|wont|isnt|wasnt|doesnt|didnt|wouldnt|couldnt|shouldnt|hasnt|havent|hadnt|im|ive|ill|youre|youve|youll|theyre|theyve|theyll|weve|were|wed|hes|shes|its|thats|whats|whos|wheres|hows|aint)\b/gi) || [];
-  const allContractions = formalContractions.length + informalContractions.length;
+  const formalContractions = text.match(/\b\w+['']\w+\b/g) || []; // don't, don't (both quote types)
+  const informalContractions =
+    text.match(
+      /\b(dont|cant|wont|isnt|wasnt|doesnt|didnt|wouldnt|couldnt|shouldnt|hasnt|havent|hadnt|im|ive|ill|youre|youve|youll|theyre|theyve|theyll|weve|were|wed|hes|shes|its|thats|whats|whos|wheres|hows|aint)\b/gi,
+    ) || [];
+  const allContractions =
+    formalContractions.length + informalContractions.length;
   const totalWords = text.split(/\s+/).filter(Boolean).length;
-  const docContractionRate = totalWords > 0 ? Math.round((allContractions / totalWords) * 10000) / 100 : 0;
+  const docContractionRate =
+    totalWords > 0
+      ? Math.round((allContractions / totalWords) * 10000) / 100
+      : 0;
   const contractionDiff = Math.abs(docContractionRate - profileContractionRate);
   if (contractionDiff > 3) {
-    flags.push(`Contraction rate ${docContractionRate}% vs profile ${profileContractionRate}%`);
-    fixes.push(docContractionRate < profileContractionRate
-      ? `Use more contractions — write "don't" not "do not", or even "dont" if it's casual.`
-      : `Fewer contractions — profile uses ${profileContractionRate}%.`);
+    flags.push(
+      `Contraction rate ${docContractionRate}% vs profile ${profileContractionRate}%`,
+    );
+    fixes.push(
+      docContractionRate < profileContractionRate
+        ? `Use more contractions — write "don't" not "do not", or even "dont" if it's casual.`
+        : `Fewer contractions — profile uses ${profileContractionRate}%.`,
+    );
     deductions += Math.min(contractionDiff * 3, 20);
   }
 
   // Smart quote detection — AI/word processors use curly quotes, humans type straight ones
-  const smartQuotes = (rawText.match(/[\u2018\u2019\u201C\u201D]/g) || []).length;
+  const smartQuotes = (rawText.match(/[\u2018\u2019\u201C\u201D]/g) || [])
+    .length;
   const straightQuotes = (rawText.match(/['"]/g) || []).length;
   const totalQuotes = smartQuotes + straightQuotes;
   if (totalQuotes > 3 && smartQuotes > straightQuotes) {
     const smartRate = Math.round((smartQuotes / totalQuotes) * 100);
     flags.push(`Smart quotes ${smartRate}% — AI/word processor artifact`);
-    fixes.push(`Replace curly quotes (\u2018\u2019\u201C\u201D) with straight ones ('"). Human typing uses straight quotes.`);
+    fixes.push(
+      `Replace curly quotes (\u2018\u2019\u201C\u201D) with straight ones ('"). Human typing uses straight quotes.`,
+    );
     deductions += Math.min(Math.round(smartRate / 5), 15);
   }
 
   // List-to-prose ratio
   const lines = rawText.split("\n");
-  const bulletLines = lines.filter(l => /^\s*[-*•]\s/.test(l)).length;
-  const totalContentLines = lines.filter(l => l.trim().length > 0).length;
-  const docListRate = totalContentLines > 0 ? Math.round((bulletLines / totalContentLines) * 100) : 0;
+  const bulletLines = lines.filter((l) => /^\s*[-*•]\s/.test(l)).length;
+  const totalContentLines = lines.filter((l) => l.trim().length > 0).length;
+  const docListRate =
+    totalContentLines > 0
+      ? Math.round((bulletLines / totalContentLines) * 100)
+      : 0;
   const profileListRate = profile.structure?.listToProse || 0;
   const listDiff = Math.abs(docListRate - profileListRate);
   if (listDiff > 20) {
     flags.push(`List ratio ${docListRate}% vs profile ${profileListRate}%`);
-    fixes.push(docListRate > profileListRate
-      ? `Too many lists — convert some bullets to prose.`
-      : `Add structure — profile uses ${profileListRate}% lists.`);
+    fixes.push(
+      docListRate > profileListRate
+        ? `Too many lists — convert some bullets to prose.`
+        : `Add structure — profile uses ${profileListRate}% lists.`,
+    );
     deductions += Math.min(listDiff - 15, 25);
   }
 
   // Single-sentence paragraph rate
   if (paragraphs.length > 5) {
-    const profileSingleRate = profile.paragraphs?.distribution?.singleSentence || 20;
-    const docSingleRate = Math.round((paragraphs.filter(p => extractSentences(p).length <= 1).length / paragraphs.length) * 100);
+    const profileSingleRate =
+      profile.paragraphs?.distribution?.singleSentence || 20;
+    const docSingleRate = Math.round(
+      (paragraphs.filter((p) => extractSentences(p).length <= 1).length /
+        paragraphs.length) *
+        100,
+    );
     const singleDiff = Math.abs(docSingleRate - profileSingleRate);
     if (singleDiff > 18) {
-      flags.push(`Single-sentence ¶ rate ${docSingleRate}% vs profile ${profileSingleRate}%`);
-      fixes.push(docSingleRate < profileSingleRate
-        ? `Add single-sentence impact paragraphs.`
-        : `Too many one-liners — profile uses ${profileSingleRate}%.`);
+      flags.push(
+        `Single-sentence ¶ rate ${docSingleRate}% vs profile ${profileSingleRate}%`,
+      );
+      fixes.push(
+        docSingleRate < profileSingleRate
+          ? `Add single-sentence impact paragraphs.`
+          : `Too many one-liners — profile uses ${profileSingleRate}%.`,
+      );
       deductions += Math.min(singleDiff - 15, 20);
     }
   }
@@ -363,7 +499,8 @@ function checkVoiceConformance(text, rawText, profile) {
   // Average sentence length (tight check)
   if (sentences.length > 10) {
     const profileAvg = profile.sentences?.avgLength || 14;
-    const docAvg = sentences.reduce((sum, s) => sum + wordCount(s), 0) / sentences.length;
+    const docAvg =
+      sentences.reduce((sum, s) => sum + wordCount(s), 0) / sentences.length;
     const avgDiff = Math.abs(docAvg - profileAvg);
     if (avgDiff > 4) {
       flags.push(`Avg sentence ${docAvg.toFixed(1)} vs profile ${profileAvg}`);
@@ -439,7 +576,9 @@ function checkVoiceConformance(text, rawText, profile) {
     const paddingRate = (paddingHits / Math.max(totalWords, 1)) * 100;
 
     if (paddingRate > 0.5) {
-      flags.push(`Information density low: ${paddingHits} padding phrases in ${totalWords} words (${paddingRate.toFixed(1)} per 100)`);
+      flags.push(
+        `Information density low: ${paddingHits} padding phrases in ${totalWords} words (${paddingRate.toFixed(1)} per 100)`,
+      );
       fixes.push(`Cut the padding. Say it once, mean it, move on.`);
       deductions += Math.min(paddingHits * 5, 40);
     }
@@ -454,19 +593,22 @@ export function scoreDocument(rawText, profile) {
   const PASS_THRESHOLD = 81;
 
   const checks = [
-    checkBannedWords(text, profile),        // 15%
-    checkFillerOpeners(text),               // 10%
-    checkSentenceLength(text, profile),     // 15%
+    checkBannedWords(text, profile), // 15%
+    checkFillerOpeners(text), // 10%
+    checkSentenceLength(text, profile), // 15%
     checkParagraphStructure(text, profile), // 10%
-    checkHedging(text),                     // 5%
-    checkPassiveVoice(text, profile),       // 5%
-    checkAITriple(rawText),                 // 5%
-    checkBulletWalls(rawText, profile),     // 5%
+    checkHedging(text), // 5%
+    checkPassiveVoice(text, profile), // 5%
+    checkAITriple(rawText), // 5%
+    checkBulletWalls(rawText, profile), // 5%
     checkVoiceConformance(text, rawText, profile), // 30%
   ];
 
   const totalWeight = checks.reduce((sum, c) => sum + c.weight, 0);
-  const weightedScore = checks.reduce((sum, c) => sum + (c.score * c.weight / 100), 0);
+  const weightedScore = checks.reduce(
+    (sum, c) => sum + (c.score * c.weight) / 100,
+    0,
+  );
   const finalScore = Math.round((weightedScore / totalWeight) * 100);
   const pass = finalScore >= PASS_THRESHOLD;
 

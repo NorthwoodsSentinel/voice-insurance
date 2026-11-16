@@ -7,6 +7,14 @@
   "bin": {
     "voice-insurance": "./bin/cli.js"
   },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc -p jsconfig.json",
+    "test": "vitest run --coverage && node scripts/check-coverage-scope.mjs",
+    "local:gate": "npm run format:check && npm run lint && npm run typecheck && npm test"
+  },
   "type": "module",
   "engines": {
     "node": ">=18"
@@ -27,5 +35,15 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/NorthwoodsSentinel/voice-insurance"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.0",
+    "eslint": "10.15.0",
+    "globals": "17.7.0",
+    "prettier": "3.8.4",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
   }
 }
